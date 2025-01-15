@@ -9,7 +9,7 @@
 
 <p align="center">
 <a href="https://hub.docker.com/r/leepeuker/movary" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/docker/pulls/leepeuker/movary" ></a>
-<a href="https://github.com/leepeuker/movary" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/github/stars/leepeuker/movary?color=yellow&label=github%20stars" ></a>
+<a href="https://github.com/leepeuker/movary" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/github/stars/leepeuker/movary?style=flat&color=yellow&label=github%20stars" ></a>
 <a href="https://github.com/leepeuker/movary/issues" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/github/issues/leepeuker/movary?color=eba434&label=github%20issues" ></a>
 <a href="https://discord.gg/KbcSqggrgW" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/discord/1125830398715363399" ></a>
 <a href="https://github.com/leepeuker/movary/blob/main/LICENSE" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/github/license/leepeuker/movary" ></a>
@@ -23,7 +23,7 @@
 <a href="https://demo.movary.org/" target="_blank" rel="noopener noreferrer">Demo</a>
 </p>
 
-Movary is free and open source web application to track, rate and explore your movie watch history.
+Movary is a free and open source web application to track, rate and explore your movie watch history.
 You can host it for yourself and others.
 It offers detailed statistics, 
 third-party integrations for importing and exporting your history from platforms like Trakt, Letterboxd, or Netflix,

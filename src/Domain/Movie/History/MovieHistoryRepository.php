@@ -11,16 +11,18 @@ class MovieHistoryRepository
     {
     }
 
-    public function create(int $movieId, int $userId, ?Date $watchedAt, int $plays, ?string $comment) : void
+    public function create(int $movieId, int $userId, ?Date $watchedAt, int $plays, ?string $comment, int $position, ?int $locationId) : void
     {
         $this->dbConnection->executeStatement(
-            'INSERT INTO movie_user_watch_dates (movie_id, user_id, watched_at, plays, `comment`) VALUES (?, ?, ?, ?, ?)',
+            'INSERT INTO movie_user_watch_dates (movie_id, user_id, watched_at, plays, `comment`, `position`, `location_id`) VALUES (?, ?, ?, ?, ?, ?, ?)',
             [
                 $movieId,
                 $userId,
                 $watchedAt !== null ? (string)$watchedAt : null,
                 (string)$plays,
                 $comment,
+                $position,
+                $locationId,
             ],
         );
     }
@@ -64,14 +66,37 @@ class MovieHistoryRepository
         );
     }
 
-    public function update(int $movieId, int $userId, ?Date $watchedAt, int $plays, ?string $comment) : void
+    public function fetchHighestPositionForWatchDate(int $movieIdToIgnore, int $userId, ?Date $watchedAt) : ?int
     {
+        return $this->dbConnection->fetchFirstColumn(
+            'SELECT MAX(position)
+            FROM movie_user_watch_dates
+            WHERE movie_id != ? AND watched_at = ? AND user_id = ?',
+            [
+                $movieIdToIgnore,
+                $watchedAt === null ? null : (string)$watchedAt,
+                $userId
+            ],
+        )[0];
+    }
+
+    public function update(
+        int $movieId,
+        int $userId,
+        ?Date $watchedAt,
+        int $plays,
+        int $position,
+        ?string $comment,
+        ?int $locationId,
+    ) : void {
         if ($watchedAt === null) {
             $this->dbConnection->executeStatement(
-                'UPDATE movie_user_watch_dates SET `comment` = ?, `plays` = ? WHERE movie_id = ? AND user_id = ? AND watched_at IS NULL',
+                'UPDATE movie_user_watch_dates SET `comment` = ?, `plays` = ?, `position` = ?, `location_id` = ? WHERE movie_id = ? AND user_id = ? AND watched_at IS NULL',
                 [
                     $comment,
                     $plays,
+                    $position,
+                    $locationId,
                     $movieId,
                     $userId,
                 ],
@@ -81,10 +106,12 @@ class MovieHistoryRepository
         }
 
         $this->dbConnection->executeStatement(
-            'UPDATE movie_user_watch_dates SET `comment` = ?, `plays` = ? WHERE movie_id = ? AND user_id = ? AND watched_at = ?',
+            'UPDATE movie_user_watch_dates SET `comment` = ?, `plays` = ? , `position` = ?, `location_id` = ? WHERE movie_id = ? AND user_id = ? AND watched_at = ?',
             [
                 $comment,
                 $plays,
+                $position,
+                $locationId,
                 $movieId,
                 $userId,
                 (string)$watchedAt,
@@ -111,6 +138,32 @@ class MovieHistoryRepository
             'UPDATE movie_user_watch_dates SET `comment` = ? WHERE movie_id = ? AND user_id = ? AND watched_at = ?',
             [
                 $comment,
+                $movieId,
+                $userId,
+                (string)$watchedAt,
+            ],
+        );
+    }
+
+    public function updateHistoryLocation(int $movieId, int $userId, ?Date $watchedAt, ?int $locationId) : void
+    {
+        if ($watchedAt === null) {
+            $this->dbConnection->executeStatement(
+                'UPDATE movie_user_watch_dates SET `location_id` = ? WHERE movie_id = ? AND user_id = ? AND watched_at IS NULL ',
+                [
+                    $locationId,
+                    $movieId,
+                    $userId,
+                ],
+            );
+
+            return;
+        }
+
+        $this->dbConnection->executeStatement(
+            'UPDATE movie_user_watch_dates SET `location_id` = ? WHERE movie_id = ? AND user_id = ? AND watched_at = ?',
+            [
+                $locationId,
                 $movieId,
                 $userId,
                 (string)$watchedAt,

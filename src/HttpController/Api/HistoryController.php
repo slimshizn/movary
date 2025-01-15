@@ -36,6 +36,7 @@ class HistoryController
                 $userId,
                 Date::createFromString($historyAddition['watchedAt']),
                 $historyAddition['plays'] ?? 1,
+                $historyAddition['position'] ?? 1,
                 $historyAddition['comment'] ?? null,
             );
         }
@@ -68,6 +69,7 @@ class HistoryController
             $requestData->getLimit(),
             $requestData->getPage(),
             $requestData->getSearchTerm(),
+            $requestData->getSortOrder(),
         );
 
         $historyCount = $this->movieHistoryApi->fetchHistoryCount(
@@ -101,6 +103,7 @@ class HistoryController
                 $userId,
                 Date::createFromString($historyAddition['watchedAt']),
                 $historyAddition['plays'],
+                $historyAddition['position'],
                 $historyAddition['comment'],
             );
         }

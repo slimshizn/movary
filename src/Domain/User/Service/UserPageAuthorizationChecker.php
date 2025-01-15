@@ -3,7 +3,6 @@
 namespace Movary\Domain\User\Service;
 
 use Movary\Domain\User\UserApi;
-use Movary\Domain\User\UserEntity;
 
 class UserPageAuthorizationChecker
 {
@@ -15,7 +14,7 @@ class UserPageAuthorizationChecker
 
     public function fetchAllHavingWatchedMovieVisibleUsernamesForCurrentVisitor(int $movieId) : array
     {
-        if ($this->authenticationService->isUserAuthenticated() === false) {
+        if ($this->authenticationService->isUserAuthenticatedWithCookie() === false) {
             return $this->userApi->fetchAllHavingWatchedMoviePublicVisibleUsernames($movieId);
         }
 
@@ -24,7 +23,7 @@ class UserPageAuthorizationChecker
 
     public function fetchAllHavingWatchedMovieWithPersonVisibleUsernamesForCurrentVisitor(int $personId) : array
     {
-        if ($this->authenticationService->isUserAuthenticated() === false) {
+        if ($this->authenticationService->isUserAuthenticatedWithCookie() === false) {
             return $this->userApi->fetchAllHavingWatchedMovieWithPersonPublicVisibleUsernames($personId);
         }
 
@@ -33,31 +32,10 @@ class UserPageAuthorizationChecker
 
     public function fetchAllVisibleUsernamesForCurrentVisitor() : array
     {
-        if ($this->authenticationService->isUserAuthenticated() === false) {
+        if ($this->authenticationService->isUserAuthenticatedWithCookie() === false) {
             return $this->userApi->fetchAllPublicVisibleUsernames();
         }
 
         return $this->userApi->fetchAllInternVisibleUsernames();
-    }
-
-    public function findUserIdIfCurrentVisitorIsAllowedToSeeUser(string $username) : ?int
-    {
-        return $this->findUserIfCurrentVisitorIsAllowedToSeeUser($username)?->getId();
-    }
-
-    public function findUserIfCurrentVisitorIsAllowedToSeeUser(string $username) : ?UserEntity
-    {
-        $user = $this->userApi->findUserByName($username);
-        if ($user === null) {
-            return null;
-        }
-
-        $userId = $user->getId();
-
-        if ($this->authenticationService->isUserPageVisibleForCurrentUser($user->getPrivacyLevel(), $userId) === false) {
-            return null;
-        }
-
-        return $user;
     }
 }

@@ -12,6 +12,7 @@ use Movary\Domain\Genre\GenreEntityList;
 use Movary\Domain\Movie\Cast\CastApi;
 use Movary\Domain\Movie\Crew\CrewApi;
 use Movary\Domain\Movie\Genre\MovieGenreApi;
+use Movary\Domain\Movie\History\Location\MovieHistoryLocationApi;
 use Movary\Domain\Movie\History\MovieHistoryApi;
 use Movary\Domain\Movie\History\MovieHistoryEntity;
 use Movary\Domain\Movie\ProductionCompany\ProductionCompanyApi;
@@ -26,6 +27,7 @@ use Movary\ValueObject\PersonalRating;
 use Movary\ValueObject\SortOrder;
 use Movary\ValueObject\Year;
 use RuntimeException;
+use Traversable;
 
 class MovieApi
 {
@@ -44,11 +46,19 @@ class MovieApi
         private readonly MovieRepository $repository,
         private readonly ProductionCompanyApi $movieProductionCompanyApi,
         private readonly PersonApi $personApi,
+        private readonly MovieHistoryLocationApi $locationApi,
     ) {
     }
 
-    public function addPlaysForMovieOnDate(int $movieId, int $userId, ?Date $watchedDate, int $playsToAdd = 1, ?string $comment = null) : void
-    {
+    public function addPlaysForMovieOnDate(
+        int $movieId,
+        int $userId,
+        ?Date $watchedDate,
+        int $playsToAdd = 1,
+        ?int $position = null,
+        ?string $comment = null,
+        ?int $locationId = null,
+    ) : void {
         $historyEntry = $this->findHistoryEntryForMovieByUserOnDate($movieId, $userId, $watchedDate);
 
         $this->watchlistApi->removeMovieFromWatchlistAutomatically($movieId, $userId);
@@ -59,7 +69,9 @@ class MovieApi
                 $userId,
                 $watchedDate,
                 $playsToAdd,
+                $position,
                 $comment,
+                $locationId,
             );
 
             return;
@@ -70,7 +82,9 @@ class MovieApi
             $userId,
             $watchedDate,
             $historyEntry->getPlays() + $playsToAdd,
+            $position ?? $historyEntry->getPosition(),
             $comment ?? $historyEntry->getComment(),
+            $locationId ?? $historyEntry->getLocationId(),
         );
     }
 
@@ -142,7 +156,7 @@ class MovieApi
         return $this->repository->fetchAll();
     }
 
-    public function fetchAllOrderedByLastUpdatedAtTmdbAsc(?int $limit = null, ?array $ids = null) : \Traversable
+    public function fetchAllOrderedByLastUpdatedAtTmdbAsc(?int $limit = null, ?array $ids = null) : Traversable
     {
         return $this->movieRepository->fetchAllOrderedByLastUpdatedAtTmdbAsc($limit, $ids);
     }
@@ -169,6 +183,20 @@ class MovieApi
         return $movie;
     }
 
+    public function fetchFromWatchlistWithActor(int $personId, int $userId) : array
+    {
+        $movies = $this->repository->fetchFromWatchlistWithActor($personId, $userId);
+
+        return $this->urlGenerator->replacePosterPathWithImageSrcUrl($movies);
+    }
+
+    public function fetchFromWatchlistWithDirector(int $personId, int $userId) : array
+    {
+        $movies = $this->repository->fetchFromWatchlistWithDirector($personId, $userId);
+
+        return $this->urlGenerator->replacePosterPathWithImageSrcUrl($movies);
+    }
+
     public function fetchHistoryByMovieId(int $movieId, int $userId) : array
     {
         return $this->historyApi->fetchHistoryByMovieId($movieId, $userId);
@@ -188,6 +216,28 @@ class MovieApi
         return $this->movieRepository->fetchMovieIdsHavingImdbIdOrderedByLastImdbUpdatedAt($maxAgeInHours, $limit, $filterMovieIds, $onlyNeverSynced);
     }
 
+    public function fetchPlayedMoviesCount(
+        int $userId,
+        ?string $searchTerm,
+        ?Year $releaseYear,
+        ?string $language,
+        ?string $genre,
+        ?bool $hasUserRating,
+        ?int $userRatingMin,
+        ?int $userRatingMax,
+    ) : int {
+        return $this->historyApi->fetchUniqueWatchedMoviesCount(
+            $userId,
+            $searchTerm,
+            $releaseYear,
+            $language,
+            $genre,
+            $hasUserRating,
+            $userRatingMin,
+            $userRatingMax,
+        );
+    }
+
     public function fetchPlayedMoviesPaginated(
         int $userId,
         int $limit,
@@ -198,6 +248,9 @@ class MovieApi
         ?Year $releaseYear,
         ?string $language,
         ?string $genre,
+        ?bool $hasUserRating,
+        ?int $userRatingMin,
+        ?int $userRatingMax,
     ) : array {
         return $this->historyApi->fetchPlayedMoviesPaginated(
             $userId,
@@ -209,6 +262,9 @@ class MovieApi
             $releaseYear,
             $language,
             $genre,
+            $hasUserRating,
+            $userRatingMin,
+            $userRatingMax,
         );
     }
 
@@ -220,6 +276,11 @@ class MovieApi
     public function fetchTotalPlayCountUnique(int $userId) : int
     {
         return $this->historyApi->fetchTotalPlayCountUnique($userId);
+    }
+
+    public function fetchUniqueLocations(int $userId) : array
+    {
+        return $this->historyApi->fetchUniqueLocations($userId);
     }
 
     public function fetchUniqueMovieGenres(int $userId) : array
@@ -237,14 +298,28 @@ class MovieApi
         return $this->historyApi->fetchUniqueMovieReleaseYears($userId);
     }
 
-    public function fetchUniqueWatchedMoviesCount(int $userId, ?string $searchTerm, ?Year $releaseYear, ?string $language, ?string $genre) : int
-    {
-        return $this->historyApi->fetchUniqueWatchedMoviesCount($userId, $searchTerm, $releaseYear, $language, $genre);
-    }
-
-    public function fetchPlayedMoviesCount(int $userId, ?string $searchTerm, ?Year $releaseYear, ?string $language, ?string $genre) : int
-    {
-        return $this->historyApi->fetchUniqueWatchedMoviesCount($userId, $searchTerm, $releaseYear, $language, $genre);
+    public function fetchUniqueWatchedMoviesCount(
+        int $userId,
+        ?string $searchTerm,
+        ?Year $releaseYear,
+        ?string $language,
+        ?string $genre,
+        ?bool $hasUserRating,
+        ?int $userRatingMin,
+        ?int $userRatingMax,
+        ?int $locationId,
+    ) : int {
+        return $this->historyApi->fetchUniqueWatchedMoviesCount(
+            $userId,
+            $searchTerm,
+            $releaseYear,
+            $language,
+            $genre,
+            $hasUserRating,
+            $userRatingMin,
+            $userRatingMax,
+            $locationId,
+        );
     }
 
     public function fetchUniqueWatchedMoviesPaginated(
@@ -257,6 +332,10 @@ class MovieApi
         ?Year $releaseYear,
         ?string $language,
         ?string $genre,
+        ?bool $hasUserRating,
+        ?int $userRatingMin,
+        ?int $userRatingMax,
+        ?int $locationId,
     ) : array {
         return $this->historyApi->fetchUniqueWatchedMoviesPaginated(
             $userId,
@@ -268,6 +347,10 @@ class MovieApi
             $releaseYear,
             $language,
             $genre,
+            $hasUserRating,
+            $userRatingMin,
+            $userRatingMax,
+            $locationId,
         );
     }
 
@@ -405,8 +488,15 @@ class MovieApi
         return $this->repository->findUserRating($movieId, $userId);
     }
 
-    public function replaceHistoryForMovieByDate(int $movieId, int $userId, ?Date $watchedAt, int $playsPerDate, ?string $comment = null) : void
-    {
+    public function replaceHistoryForMovieByDate(
+        int $movieId,
+        int $userId,
+        ?Date $watchedAt,
+        int $playsPerDate,
+        ?int $position = null,
+        ?string $comment = null,
+        ?int $locationId = null,
+    ) : void {
         $existingHistoryEntry = $this->findHistoryEntryForMovieByUserOnDate($movieId, $userId, $watchedAt);
 
         if ($existingHistoryEntry === null) {
@@ -417,7 +507,9 @@ class MovieApi
                 $userId,
                 $watchedAt,
                 $playsPerDate,
+                $position,
                 $comment,
+                $locationId,
             );
 
             return;
@@ -432,7 +524,9 @@ class MovieApi
             $userId,
             $watchedAt,
             $playsPerDate,
-            $comment,
+            $position ?? $existingHistoryEntry->getPosition(),
+            $comment ?? $existingHistoryEntry->getComment(),
+            $locationId ?? $existingHistoryEntry->getLocationId(),
         );
     }
 
@@ -441,7 +535,7 @@ class MovieApi
         $this->castApi->deleteByMovieId($movieId);
 
         foreach ($tmdbCast as $position => $castMember) {
-            $person = $this->personApi->createOrUpdatePersonByTmdbId(
+            $person = $this->personApi->createOrUpdatePersonWithTmdbCreditsData(
                 $castMember->getPerson()->getTmdbId(),
                 $castMember->getPerson()->getName(),
                 $castMember->getPerson()->getGender(),
@@ -449,7 +543,7 @@ class MovieApi
                 $castMember->getPerson()->getPosterPath(),
             );
 
-            $this->castApi->create($movieId, $person->getId(), $castMember->getCharacter(), $position);
+            $this->castApi->create($movieId, $person->getId(), $castMember->getCharacter(), (int)$position);
         }
     }
 
@@ -458,7 +552,7 @@ class MovieApi
         $this->crewApi->deleteByMovieId($movieId);
 
         foreach ($tmdbCrew as $position => $crewMember) {
-            $person = $this->personApi->createOrUpdatePersonByTmdbId(
+            $person = $this->personApi->createOrUpdatePersonWithTmdbCreditsData(
                 $crewMember->getPerson()->getTmdbId(),
                 $crewMember->getPerson()->getName(),
                 $crewMember->getPerson()->getGender(),
@@ -466,7 +560,7 @@ class MovieApi
                 $crewMember->getPerson()->getPosterPath(),
             );
 
-            $this->crewApi->create($movieId, $person->getId(), $crewMember->getJob(), $crewMember->getDepartment(), $position);
+            $this->crewApi->create($movieId, $person->getId(), $crewMember->getJob(), $crewMember->getDepartment(), (int)$position);
         }
     }
 
@@ -514,6 +608,28 @@ class MovieApi
             $userId,
             $watchDate,
             $comment,
+        );
+    }
+
+    public function updateHistoryLocation(int $movieId, int $userId, ?Date $watchDate, ?int $locationId) : void
+    {
+        $this->historyApi->updateHistoryLocation(
+            $movieId,
+            $userId,
+            $watchDate,
+            $locationId,
+        );
+    }
+
+    public function updateHistoryLocationByName(int $movieId, int $userId, ?Date $watchDate, string $locationName) : void
+    {
+        $locationId = $this->locationApi->createOrUpdate($userId, $locationName);
+
+        $this->historyApi->updateHistoryLocation(
+            $movieId,
+            $userId,
+            $watchDate,
+            $locationId,
         );
     }
 
