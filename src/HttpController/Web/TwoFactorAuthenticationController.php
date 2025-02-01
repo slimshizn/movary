@@ -7,10 +7,8 @@ use Movary\Domain\User\Service\TwoFactorAuthenticationApi;
 use Movary\Domain\User\Service\TwoFactorAuthenticationFactory;
 use Movary\Util\Json;
 use Movary\Util\SessionWrapper;
-use Movary\ValueObject\Http\Header;
 use Movary\ValueObject\Http\Request;
 use Movary\ValueObject\Http\Response;
-use Movary\ValueObject\Http\StatusCode;
 
 class TwoFactorAuthenticationController
 {
@@ -60,30 +58,5 @@ class TwoFactorAuthenticationController
         $this->sessionWrapper->set('twoFactorAuthenticationEnabled', true);
 
         return Response::createOk();
-    }
-
-    public function verifyTotp(Request $request) : Response
-    {
-        $userTotpInput = $request->getPostParameters()['totpCode'];
-        $rememberMe = $this->sessionWrapper->find('rememberMe') ?? false;
-        $userId = (int)$this->sessionWrapper->find('totpUserId');
-
-        if ($this->twoFactorAuthenticationApi->verifyTotpUri($userId, (int)$userTotpInput) === false) {
-            $this->sessionWrapper->set('invalidTotpCode', true);
-
-            return Response::create(
-                StatusCode::createSeeOther(),
-                null,
-                [Header::createLocation($_SERVER['HTTP_REFERER'])],
-            );
-        }
-
-        $this->authenticationService->createAuthenticationCookie($userId, $rememberMe);
-
-        return Response::create(
-            StatusCode::createSeeOther(),
-            null,
-            [Header::createLocation($_SERVER['HTTP_REFERER'])],
-        );
     }
 }

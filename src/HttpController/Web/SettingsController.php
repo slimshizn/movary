@@ -23,6 +23,7 @@ use Movary\Service\WebhookUrlBuilder;
 use Movary\Util\Json;
 use Movary\Util\SessionWrapper;
 use Movary\ValueObject\DateFormat;
+use Movary\ValueObject\DateTime;
 use Movary\ValueObject\Http\Header;
 use Movary\ValueObject\Http\Request;
 use Movary\ValueObject\Http\Response;
@@ -113,10 +114,10 @@ class SettingsController
     {
         $userId = $this->authenticationService->getCurrentUserId();
 
-        $options = new ZipStream\Option\Archive();
-        $options->setSendHttpHeaders(true);
-
-        $zip = new ZipStream\ZipStream('export-for-letterboxd.zip', $options);
+        $zip = new ZipStream\ZipStream(
+            outputName: 'export-for-letterboxd.zip',
+            sendHttpHeaders: true,
+        );
 
         foreach ($this->letterboxdExporter->generateCsvFiles($userId) as $index => $csvFile) {
             $zip->addFileFromPath('export-' . $index . '.csv', $csvFile);
@@ -153,7 +154,6 @@ class SettingsController
             $this->twig->render('page/settings-app.html.twig', [
                 'currentApplicationVersion' => $this->serverSettings->getApplicationVersion(),
                 'latestRelease' => $this->githubApi->fetchLatestMovaryRelease(),
-                'timeZone' => date_default_timezone_get(),
             ]),
         );
     }
@@ -317,6 +317,18 @@ class SettingsController
         );
     }
 
+    public function renderLocationsAccountPage() : Response
+    {
+        $user = $this->authenticationService->getCurrentUser();
+
+        return Response::create(
+            StatusCode::createOk(),
+            $this->twig->render('page/settings-account-locations.html.twig', [
+                'locationsEnabled' => $user->hasLocationsEnabled(),
+            ]),
+        );
+    }
+
     public function renderNetflixPage() : Response
     {
         return Response::create(
@@ -441,9 +453,15 @@ class SettingsController
             StatusCode::createOk(),
             $this->twig->render('page/settings-server-general.html.twig', [
                 'applicationUrl' => $this->serverSettings->getApplicationUrl(),
+                'applicationName' => $this->serverSettings->getApplicationName(),
+                'applicationTimezone' => $this->serverSettings->getApplicationTimezone(),
+                'applicationTimezoneDefault' => DateTime::DEFAULT_TIME_ZONE,
+                'applicationTimezonesAvailable' => timezone_identifiers_list(),
                 'tmdbApiKey' => $this->serverSettings->getTmdbApiKey(),
                 'tmdbApiKeySetInEnv' => $this->serverSettings->isTmdbApiKeySetInEnvironment(),
                 'applicationUrlSetInEnv' => $this->serverSettings->isApplicationUrlSetInEnvironment(),
+                'applicationNameSetInEnv' => $this->serverSettings->isApplicationNameSetInEnvironment(),
+                'applicationTimezoneSetInEnv' => $this->serverSettings->isApplicationTimezoneSetInEnvironment(),
             ]),
         );
     }
@@ -708,12 +726,20 @@ class SettingsController
 
         $tmdbApiKey = isset($requestData['tmdbApiKey']) === false ? null : $requestData['tmdbApiKey'];
         $applicationUrl = isset($requestData['applicationUrl']) === false ? null : $requestData['applicationUrl'];
+        $applicationName = isset($requestData['applicationName']) === false ? null : $requestData['applicationName'];
+        $applicationTimezone = isset($requestData['applicationTimezone']) === false ? null : $requestData['applicationTimezone'];
 
         if ($tmdbApiKey !== null) {
             $this->serverSettings->setTmdbApiKey($tmdbApiKey);
         }
         if ($applicationUrl !== null) {
             $this->serverSettings->setApplicationUrl($applicationUrl);
+        }
+        if ($applicationName !== null) {
+            $this->serverSettings->setApplicationName($applicationName);
+        }
+        if ($applicationTimezone !== null) {
+            $this->serverSettings->setApplicationTimezone($applicationTimezone);
         }
 
         return Response::createOk();

@@ -20,7 +20,7 @@ use Twig\Environment;
 
 class HistoryController
 {
-    private const DEFAULT_LIMIT = 24;
+    private const int DEFAULT_LIMIT = 24;
 
     public function __construct(
         private readonly Environment $twig,
@@ -50,21 +50,22 @@ class HistoryController
         $newWatchDate = empty($requestBody['newWatchDate']) === false ? Date::createFromStringAndFormat($requestBody['newWatchDate'], $dateFormat) : null;
         $originalWatchDate = empty($requestBody['originalWatchDate']) === false ? Date::createFromStringAndFormat($requestBody['originalWatchDate'], $dateFormat) : null;
 
-        $plays = (int)$requestBody['plays'];
+        $plays = empty($requestBody['plays']) === true ? 1 : (int)$requestBody['plays'];
         $comment = empty($requestBody['comment']) === true ? null : (string)$requestBody['comment'];
+        $position = empty($requestBody['position']) === true ? 1 : (int)$requestBody['position'];
+        $locationId = empty($requestBody['locationId']) === true ? null : (int)$requestBody['locationId'];
+
+        $this->movieApi->updateHistoryComment($movieId, $userId, $newWatchDate, $comment);
+        $this->movieApi->updateHistoryLocation($movieId, $userId, $newWatchDate, $locationId);
 
         if ($originalWatchDate == $newWatchDate) {
-            $this->movieApi->replaceHistoryForMovieByDate($movieId, $userId, $newWatchDate, $plays, $comment);
+            $this->movieApi->replaceHistoryForMovieByDate($movieId, $userId, $newWatchDate, $plays, $position);
 
             return Response::create(StatusCode::createNoContent());
         }
 
-        $this->movieApi->addPlaysForMovieOnDate($movieId, $userId, $newWatchDate, $plays);
+        $this->movieApi->addPlaysForMovieOnDate($movieId, $userId, $newWatchDate, $plays, $position);
         $this->movieApi->deleteHistoryByIdAndDate($movieId, $userId, $originalWatchDate);
-
-        if ($comment !== null) {
-            $this->movieApi->updateHistoryComment($movieId, $userId, $newWatchDate, $comment);
-        }
 
         return Response::create(StatusCode::createNoContent());
     }
@@ -101,6 +102,7 @@ class HistoryController
         $tmdbId = (int)$requestData['tmdbId'];
         $personalRating = $requestData['personalRating'] === 0 ? null : PersonalRating::create((int)$requestData['personalRating']);
         $comment = empty($requestData['comment']) === true ? null : (string)$requestData['comment'];
+        $locationId = empty($requestData['locationId']) === true ? null : (int)$requestData['locationId'];
 
         $movie = $this->movieApi->findByTmdbId($tmdbId);
 
@@ -111,17 +113,14 @@ class HistoryController
         $this->movieApi->updateUserRating($movie->getId(), $userId, $personalRating);
         $this->movieApi->addPlaysForMovieOnDate($movie->getId(), $userId, $watchDate);
         $this->movieApi->updateHistoryComment($movie->getId(), $userId, $watchDate, $comment);
+        $this->movieApi->updateHistoryLocation($movie->getId(), $userId, $watchDate, $locationId);
 
         return Response::create(StatusCode::createOk());
     }
 
     public function renderHistory(Request $request) : Response
     {
-        $userId = $this->userPageAuthorizationChecker->findUserIdIfCurrentVisitorIsAllowedToSeeUser((string)$request->getRouteParameters()['username']);
-        if ($userId === null) {
-            return Response::createNotFound();
-        }
-
+        $userId = $this->userApi->fetchUserByName((string)$request->getRouteParameters()['username'])->getId();
         $searchTerm = $request->getGetParameters()['s'] ?? null;
         $page = $request->getGetParameters()['p'] ?? 1;
         $limit = self::DEFAULT_LIMIT;

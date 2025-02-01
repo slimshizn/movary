@@ -75,8 +75,11 @@
                 <h6 style="margin-bottom: 0.2rem">Release</h6>
                 <div style="margin-bottom: 0.4rem">
                     <span class="fw-light">
-                        {% if movie.releaseDate == '' %} - {% endif %}
-                        {{ movie.releaseDate|date(dateFormatPhp) }}
+                        {% if movie.releaseDate == '' %}
+                            -
+                        {% else %}
+                            {{ movie.releaseDate|date(dateFormatPhp) }}
+                        {% endif %}
                     </span>
                 </div>
             </div>
@@ -131,9 +134,19 @@
                             {% if currentUserName == routeUsername %}onclick="loadWatchDateModal(this)"{% endif %}
                             data-watch-date="{{ watchDate.watched_at is null ? '' : watchDate.watched_at|date(dateFormatPhp) }}"
                             data-plays="{{ watchDate.plays }}"
-                            data-comment="{{ watchDate.comment }}">
-                            {{ watchDate.watched_at is null ? 'Unkown date' : watchDate.watched_at|date(dateFormatPhp) }} {% if watchDate.plays > 1 %}({{ watchDate.plays }}x){% endif %}
-                            {% if watchDate.comment != '' %}<i class="bi bi-chat-square-text" style="position: absolute; right:.7rem; top:25%;">{% endif %}</i>
+                            data-comment="{{ watchDate.comment }}"
+                            data-position="{{ watchDate.position }}"
+                            data-location="{{ watchDate.location_id }}">
+                            {{ watchDate.watched_at is null ? 'Unkown date' : watchDate.watched_at|date(dateFormatPhp) }}
+                            {% if watchDate.plays > 1 %}({{ watchDate.plays }}x){% endif %}
+                            <span style="position: absolute; right:.7rem; top:50%; transform: translateY(-50%); display: flex; gap: 0.5rem;">
+                                {% if watchDate.comment != '' %}
+                                    <i class="bi bi-chat-square-text"></i>
+                                {% endif %}
+                                {% if watchDate.location_id != '' and currentUserLocationsEnabled %}
+                                    <i class="bi bi-pin-map-fill"></i>
+                                {% endif %}
+                            </span>
                         </li>
                     {% endfor %}
                 </ul>
@@ -197,6 +210,7 @@
             {% for castMember in castMembers|slice(0, 40) %}
                 <div class="card" style="width: 1rem;min-width: 110px;margin-right: 0.5rem;">
                     <div class="card-header text-truncate"
+                         id="castMemberName"
                          onclick="window.location='/users/{{ routeUsername }}/persons/{{ castMember.id }}'"
                          data-bs-toggle="tooltip"
                          data-bs-title="{{ castMember.name }}"
@@ -213,6 +227,7 @@
                          style="cursor: pointer">
                     {% if displayCharacterNames == true %}
                         <div class="card-footer text-truncate"
+                             id="castCharacterName"
                              data-bs-toggle="tooltip"
                              data-bs-title="{{ castMember.characterName }}"
                              style="padding: 0.1rem;text-align: center">

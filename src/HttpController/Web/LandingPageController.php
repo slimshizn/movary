@@ -2,8 +2,6 @@
 
 namespace Movary\HttpController\Web;
 
-use Movary\Domain\User\Service\Authentication;
-use Movary\Domain\User\UserApi;
 use Movary\Util\SessionWrapper;
 use Movary\ValueObject\Http\Response;
 use Movary\ValueObject\Http\StatusCode;
@@ -22,30 +20,15 @@ class LandingPageController
 
     public function render() : Response
     {
-        $failedLogin = $this->sessionWrapper->has('failedLogin');
         $deletedAccount = $this->sessionWrapper->has('deletedAccount');
-        $invalidTotpCode = $this->sessionWrapper->has('invalidTotpCode');
-        $useTwoFactorAuthentication = $this->sessionWrapper->has('useTwoFactorAuthentication');
-
-        $this->sessionWrapper->unset('failedLogin', 'deletedAccount', 'invalidTotpCode', 'useTwoFactorAuthentication');
-        if ($invalidTotpCode === true) {
-            $useTwoFactorAuthentication = true;
-        }
-
-        if ($useTwoFactorAuthentication === false) {
-            $this->sessionWrapper->unset('rememberMe');
-        }
 
         return Response::create(
             StatusCode::createOk(),
             $this->twig->render('page/login.html.twig', [
-                'failedLogin' => $failedLogin,
                 'deletedAccount' => $deletedAccount,
                 'registrationEnabled' => $this->registrationEnabled,
                 'defaultEmail' => $this->defaultEmail,
-                'defaultPassword' => $this->defaultPassword,
-                'useTwoFactorAuthentication' => $useTwoFactorAuthentication,
-                'invalidTotpCode' => $invalidTotpCode,
+                'defaultPassword' => $this->defaultPassword
             ]),
         );
     }

@@ -13,7 +13,7 @@ use RuntimeException;
 
 class TmdbClient
 {
-    private const BASE_URL = 'https://api.themoviedb.org/3';
+    private const string BASE_URL = 'https://api.themoviedb.org/3';
 
     public function __construct(
         private readonly ClientInterface $httpClient,
@@ -23,15 +23,8 @@ class TmdbClient
 
     public function get(string $relativeUrl, array $getParameters = []) : array
     {
-        $getParametersRendered = '?';
+        $url = $this->buildUrl($relativeUrl, $getParameters);
 
-        foreach ($getParameters as $name => $getParameter) {
-            $getParametersRendered .= $name . '=' . $getParameter . '&';
-        }
-
-        $getParametersRendered .= 'api_key=' . $this->serverSettingsService->getTmdbApiKey();
-
-        $url = self::BASE_URL . $relativeUrl . $getParametersRendered;
         $request = new Request('GET', $url);
 
         $response = $this->httpClient->sendRequest($request);
@@ -46,6 +39,19 @@ class TmdbClient
         };
 
         return Json::decode((string)$response->getBody());
+    }
+
+    private function buildUrl(string $relativeUrl, array $getParameters) : string
+    {
+        $getParametersRendered = '?';
+
+        foreach ($getParameters as $name => $getParameter) {
+            $getParametersRendered .= $name . '=' . $getParameter . '&';
+        }
+
+        $getParametersRendered .= 'api_key=' . $this->serverSettingsService->getTmdbApiKey();
+
+        return self::BASE_URL . $relativeUrl . $getParametersRendered;
     }
 
     private function handleNotFound(string $url, ResponseInterface $response) : never

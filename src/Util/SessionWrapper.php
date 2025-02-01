@@ -2,11 +2,37 @@
 
 namespace Movary\Util;
 
+use RuntimeException;
+
 class SessionWrapper
 {
     public function destroy() : void
     {
-        session_destroy();
+        $_SESSION = array();
+
+        if (ini_get('session.use_cookies')) {
+            $sessionName = session_name();
+            if ($sessionName === false) {
+                throw new RuntimeException('Could not get session name');
+            }
+
+            $params = session_get_cookie_params();
+
+            setcookie(
+                $sessionName,
+                '',
+                time() - 42000,
+                (string)$params['path'],
+                (string)$params['domain'],
+                (bool)$params['secure'],
+                (bool)$params['httponly'],
+            );
+        }
+
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_destroy();
+            session_regenerate_id();
+        }
     }
 
     public function find(string $key) : mixed
