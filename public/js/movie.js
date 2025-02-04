@@ -23,6 +23,32 @@ function deleteWatchDate() {
     })
 }
 
+function toggleWatchDateAdvancedMode() {
+    if (document.getElementById('advancedWatchDateDetails').classList.contains('d-none')) {
+        enableWatchDateAdvancedMode()
+
+        return
+    }
+
+    disableWatchDateAdvancedMode()
+}
+
+function disableWatchDateAdvancedMode() {
+    const advancedWatchDateDetails = document.getElementById('advancedWatchDateDetails');
+    const advancedWatchDateModeButton = document.getElementById('advancedWatchDateModeButton');
+
+    advancedWatchDateModeButton.innerHTML = 'Advanced mode'
+    advancedWatchDateDetails.classList.add('d-none')
+}
+
+function enableWatchDateAdvancedMode() {
+    const advancedWatchDateDetails = document.getElementById('advancedWatchDateDetails');
+    const advancedWatchDateModeButton = document.getElementById('advancedWatchDateModeButton');
+
+    advancedWatchDateDetails.classList.remove('d-none')
+    advancedWatchDateModeButton.innerHTML = 'Simple mode'
+}
+
 function getMovieId() {
     return document.getElementById('movieId').value
 }
@@ -69,7 +95,7 @@ function toggleWatchDates() {
     }
 }
 
-function loadWatchDateModal(watchDateListElement) {
+async function loadWatchDateModal(watchDateListElement) {
     const modal = new bootstrap.Modal('#editWatchDateModal', {
         keyboard: false
     })
@@ -77,16 +103,54 @@ function loadWatchDateModal(watchDateListElement) {
     document.getElementById('editWatchDateModalInput').value = watchDateListElement.dataset.watchDate;
     document.getElementById('editWatchDateModalPlaysInput').value = watchDateListElement.dataset.plays;
     document.getElementById('editWatchDateModalCommentInput').value = watchDateListElement.dataset.comment;
+    document.getElementById('editWatchDateModalPositionInput').value = watchDateListElement.dataset.position;
 
     document.getElementById('originalWatchDate').value = watchDateListElement.dataset.watchDate;
     document.getElementById('originalWatchDatePlays').value = watchDateListElement.dataset.plays;
+
+    disableWatchDateAdvancedMode()
 
     new Datepicker(document.getElementById('editWatchDateModalInput'), {
         format: document.getElementById('dateFormatJavascript').value,
         title: 'Watch date',
     })
 
+    await loadLocationOptions()
+    document.getElementById('editWatchDateModalLocationInput').value = watchDateListElement.dataset.location;
+
     modal.show()
+}
+
+async function loadLocationOptions() {
+    let locations;
+    try {
+        locations = await fetchLocations();
+    } catch (error) {
+        addAlert('alertMovieModalDiv', 'Could not load locations', 'danger', false);
+
+        return;
+    }
+
+    const selectElement = document.getElementById('editWatchDateModalLocationInput');
+
+    selectElement.innerHTML = '';
+
+    const fragment = document.createDocumentFragment();
+
+    const optionElement = document.createElement('option');
+    optionElement.value = '';
+    optionElement.selected = true;
+    fragment.appendChild(optionElement);
+
+    locations.forEach(location => {
+        const optionElement = document.createElement('option');
+        optionElement.value = location.id;
+        optionElement.textContent = location.name;
+
+        fragment.appendChild(optionElement);
+    });
+
+    selectElement.appendChild(fragment)
 }
 
 function editWatchDate() {
@@ -94,7 +158,9 @@ function editWatchDate() {
 
     const newWatchDate = document.getElementById('editWatchDateModalInput').value;
     const newWatchDatePlays = document.getElementById('editWatchDateModalPlaysInput').value;
+    const newPositionPlays = document.getElementById('editWatchDateModalPositionInput').value;
     const comment = document.getElementById('editWatchDateModalCommentInput').value;
+    const locationId = document.getElementById('editWatchDateModalLocationInput').value;
 
     const apiUrl = '/users/' + getRouteUsername() + '/movies/' + getMovieId() + '/history'
 
@@ -106,7 +172,9 @@ function editWatchDate() {
             'originalWatchDate': originalWatchDate,
             'plays': newWatchDatePlays,
             'comment': comment,
-            'dateFormat': document.getElementById('dateFormatPhp').value
+            'position': newPositionPlays,
+            'dateFormat': document.getElementById('dateFormatPhp').value,
+            'locationId': locationId
         }),
         success: function (data, textStatus, xhr) {
             window.location.reload()
@@ -131,27 +199,21 @@ function loadRatingModal() {
 function toggleWatchlist(isOnWatchlist) {
     removeAlert('alertMovieOptionModalDiv')
 
-    document.getElementById('refreshTmdbDataButton').disabled = true;
-    document.getElementById('refreshImdbRatingButton').disabled = true;
-    document.getElementById('watchlistButton').disabled = true;
+    disableMoreModalButtons();
 
     if (isOnWatchlist == null) {
         addToWatchlistRequest().then(() => {
             location.reload()
         }).catch(() => {
             addAlert('alertMovieOptionModalDiv', 'Could not add to Watchlist', 'danger')
-            document.getElementById('refreshTmdbDataButton').disabled = false;
-            document.getElementById('refreshImdbRatingButton').disabled = false;
-            document.getElementById('watchlistButton').disabled = false;
+            disableMoreModalButtons(false);
         })
     } else {
         removeFromWatchlistRequest().then(() => {
             location.reload()
         }).catch(() => {
             addAlert('alertMovieOptionModalDiv', 'Could not remove from Watchlist', 'danger')
-            document.getElementById('refreshTmdbDataButton').disabled = false;
-            document.getElementById('refreshImdbRatingButton').disabled = false;
-            document.getElementById('watchlistButton').disabled = false;
+            disableMoreModalButtons(false);
         })
     }
 }
@@ -159,17 +221,13 @@ function toggleWatchlist(isOnWatchlist) {
 function refreshTmdbData() {
     removeAlert('alertMovieOptionModalDiv')
 
-    document.getElementById('refreshTmdbDataButton').disabled = true;
-    document.getElementById('refreshImdbRatingButton').disabled = true;
-    document.getElementById('watchlistButton').disabled = true;
+    disableMoreModalButtons();
 
     refreshTmdbDataRequest().then(() => {
         location.reload()
     }).catch(() => {
         addAlert('alertMovieOptionModalDiv', 'Could not refresh tmdb data', 'danger')
-        document.getElementById('refreshTmdbDataButton').disabled = false;
-        document.getElementById('refreshImdbRatingButton').disabled = false;
-        document.getElementById('watchlistButton').disabled = false;
+        disableMoreModalButtons(false);
     })
 }
 
@@ -203,21 +261,24 @@ async function refreshTmdbDataRequest() {
     return true
 }
 
+function disableMoreModalButtons(disable = true) {
+    document.getElementById('whereToWatchModalButton').disabled = disable;
+    document.getElementById('refreshTmdbDataButton').disabled = disable;
+    document.getElementById('refreshImdbRatingButton').disabled = disable;
+    document.getElementById('watchlistButton').disabled = disable;
+}
+
 //region refreshImdbRating
 function refreshImdbRating() {
     removeAlert('alertMovieOptionModalDiv')
 
-    document.getElementById('refreshTmdbDataButton').disabled = true;
-    document.getElementById('refreshImdbRatingButton').disabled = true;
-    document.getElementById('watchlistButton').disabled = true;
+    disableMoreModalButtons();
 
     refreshImdbRatingRequest().then(() => {
         location.reload()
     }).catch(() => {
         addAlert('alertMovieOptionModalDiv', 'Could not refresh imdb rating', 'danger')
-        document.getElementById('refreshTmdbDataButton').disabled = false;
-        document.getElementById('refreshImdbRatingButton').disabled = false;
-        document.getElementById('watchlistButton').disabled = false;
+        disableMoreModalButtons(false);
     })
 }
 
@@ -344,8 +405,8 @@ function isTruncated(el) {
     return el.scrollWidth > el.clientWidth
 }
 
-const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
-const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => {
+const tooltipTriggerListCast = document.querySelectorAll('[data-bs-toggle="tooltip"]#castMemberName, [data-bs-toggle="tooltip"]#castCharacterName')
+const tooltipCastList = [...tooltipTriggerListCast].map(tooltipTriggerEl => {
     if (isTruncated(tooltipTriggerEl) === false) {
         return
     }
@@ -357,3 +418,6 @@ const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => {
 
     new bootstrap.Tooltip(tooltipTriggerEl, {'placement': placement})
 })
+
+const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]#editWatchDateModalPlays, [data-bs-toggle="tooltip"]#editWatchDateModalPlaysInput1')
+const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))

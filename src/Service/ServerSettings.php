@@ -8,42 +8,56 @@ use Movary\ValueObject\Exception\ConfigNotSetException;
 
 class ServerSettings
 {
-    private const TOTP_ISSUER = 'TOTP_ISSUER';
+    private const string APPLICATION_TIMEZONE = 'TIMEZONE';
 
-    private const JELLYFIN_DEVICE_ID = 'JELLYFIN_DEVICE_ID';
+    private const string TOTP_ISSUER = 'TOTP_ISSUER';
 
-    private const PLEX_APP_NAME = 'PLEX_APP_NAME';
+    private const string JELLYFIN_DEVICE_ID = 'JELLYFIN_DEVICE_ID';
 
-    private const JELLYFIN_APP_NAME = 'JELLYFIN_APP_NAME';
+    private const string PLEX_APP_NAME = 'PLEX_APP_NAME';
 
-    private const PLEX_IDENTIFIER = 'PLEX_IDENTIFIER';
+    private const string JELLYFIN_APP_NAME = 'JELLYFIN_APP_NAME';
 
-    private const APPLICATION_URL = 'APPLICATION_URL';
+    private const string PLEX_IDENTIFIER = 'PLEX_IDENTIFIER';
 
-    private const APPLICATION_VERSION = 'APPLICATION_VERSION';
+    private const string APPLICATION_NAME = 'APPLICATION_NAME';
 
-    private const SMTP_HOST = 'SMTP_HOST';
+    private const string APPLICATION_URL = 'APPLICATION_URL';
 
-    private const SMTP_SENDER_ADDRESS = 'SMTP_SENDER_ADDRESS';
+    private const string APPLICATION_VERSION = 'APPLICATION_VERSION';
 
-    private const SMTP_PASSWORD = 'SMTP_PASSWORD';
+    private const string SMTP_HOST = 'SMTP_HOST';
 
-    private const SMTP_PORT = 'SMTP_PORT';
+    private const string SMTP_SENDER_ADDRESS = 'SMTP_SENDER_ADDRESS';
 
-    private const SMTP_USER = 'SMTP_USER';
+    private const string SMTP_PASSWORD = 'SMTP_PASSWORD';
 
-    private const SMTP_FROM_ADDRESS = 'SMTP_FROM_ADDRESS';
+    private const string SMTP_PORT = 'SMTP_PORT';
 
-    private const SMTP_ENCRYPTION = 'SMTP_ENCRYPTION';
+    private const string SMTP_USER = 'SMTP_USER';
 
-    private const SMTP_WITH_AUTH = 'SMTP_WITH_AUTH';
+    private const string SMTP_FROM_ADDRESS = 'SMTP_FROM_ADDRESS';
 
-    private const TMDB_API_KEY = 'TMDB_API_KEY';
+    private const string SMTP_ENCRYPTION = 'SMTP_ENCRYPTION';
+
+    private const string SMTP_WITH_AUTH = 'SMTP_WITH_AUTH';
+
+    private const string TMDB_API_KEY = 'TMDB_API_KEY';
 
     public function __construct(
         private readonly Config $config,
         private readonly Connection $dbConnection,
     ) {
+    }
+
+    public function getApplicationName() : ?string
+    {
+        return $this->getByKey(self::APPLICATION_NAME);
+    }
+
+    public function getApplicationTimezone() : ?string
+    {
+        return $this->getByKey(self::APPLICATION_TIMEZONE);
     }
 
     public function getApplicationUrl() : ?string
@@ -126,6 +140,16 @@ class ServerSettings
         return $this->getByKey(self::TOTP_ISSUER) ?? 'Movary';
     }
 
+    public function isApplicationNameSetInEnvironment() : bool
+    {
+        return $this->isSetInEnvironment(self::APPLICATION_NAME);
+    }
+
+    public function isApplicationTimezoneSetInEnvironment() : bool
+    {
+        return $this->isSetInEnvironment(self::APPLICATION_TIMEZONE);
+    }
+
     public function isApplicationUrlSetInEnvironment() : bool
     {
         return $this->isSetInEnvironment(self::APPLICATION_URL);
@@ -199,6 +223,16 @@ class ServerSettings
         }
 
         return $value;
+    }
+
+    public function setApplicationName(string $applicationName) : void
+    {
+        $this->updateValue(self::APPLICATION_NAME, $applicationName);
+    }
+
+    public function setApplicationTimezone(string $applicationTimezone) : void
+    {
+        $this->updateValue(self::APPLICATION_TIMEZONE, $applicationTimezone);
     }
 
     public function setApplicationUrl(string $applicationUrl) : void

@@ -65,11 +65,7 @@ class PersonController
 
     public function renderPage(Request $request) : Response
     {
-        $userId = $this->userPageAuthorizationChecker->findUserIdIfCurrentVisitorIsAllowedToSeeUser((string)$request->getRouteParameters()['username']);
-        if ($userId === null) {
-            return Response::createNotFound();
-        }
-
+        $userId = $this->userApi->fetchUserByName((string)$request->getRouteParameters()['username'])->getId();
         $personId = (int)$request->getRouteParameters()['id'];
 
         $person = $this->personApi->findById($personId);
@@ -98,7 +94,7 @@ class PersonController
         }
 
         $isHiddenInTopLists = false;
-        if ($this->authenticationService->isUserAuthenticated() === true) {
+        if ($this->authenticationService->isUserAuthenticatedWithCookie() === true) {
             $userId = $this->authenticationService->getCurrentUserId();
             $isHiddenInTopLists = $this->userApi->hasHiddenPerson($userId, $personId);
         }
@@ -123,7 +119,9 @@ class PersonController
                     'isHiddenInTopLists' => $isHiddenInTopLists,
                 ],
                 'moviesAsActor' => $this->movieApi->fetchWithActor($personId, $userId),
+                'moviesFromWatchlistAsActor' => $this->movieApi->fetchFromWatchlistWithActor($personId, $userId),
                 'moviesAsDirector' => $this->movieApi->fetchWithDirector($personId, $userId),
+                'moviesFromWatchlistAsDirector' => $this->movieApi->fetchFromWatchlistWithDirector($personId, $userId),
             ]),
         );
     }

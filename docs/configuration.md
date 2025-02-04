@@ -15,32 +15,34 @@ The `Web UI` column is set to yes if an environment variable can alternatively b
 
 ### General
 
-| NAME                                        |  DEFAULT VALUE  | INFO                                                                    | Web UI |
-|:--------------------------------------------|:---------------:|:------------------------------------------------------------------------|:------:|
-| `TMDB_API_KEY`                              |        -        | **Required** (get key [here](https://www.themoviedb.org/settings/api))  |  yes   |
-| `APPLICATION_URL`                           |        -        | Public base url of the application (e.g. `htttp://localhost`)           |  yes   |
-| `TMDB_ENABLE_IMAGE_CACHING`                 |       `0`       | More info [here](features/tmdb-data.md#image-cache)                     |        |
-| `ENABLE_REGISTRATION`                       |       `0`       | Enables public user registration                                        |        |
-| `MIN_RUNTIME_IN_SECONDS_FOR_JOB_PROCESSING` |      `15`       | Minimum time between background jobs processing                         |        |
-| `TIMEZONE`                                  | `Europe/Berlin` | Supported timezones [here](https://www.php.net/manual/en/timezones.php) |        |
-| `DEFAULT_LOGIN_EMAIL`                       |        -        | Email address to always autofill on login page                          |        |
-| `DEFAULT_LOGIN_PASSWORD`                    |        -        | Password to always autofill on login page                               |        |
-| `TOTP_ISSUER`                               |    `Movary`     | The issuer used when setting up two factor authentication               |        |
+| NAME                                        | DEFAULT VALUE | INFO                                                                    | Web UI |
+|:--------------------------------------------|:-------------:|:------------------------------------------------------------------------|:------:|
+| `TMDB_API_KEY`                              |       -       | **Required** (get key [here](https://www.themoviedb.org/settings/api))  |  yes   |
+| `APPLICATION_URL`                           |       -       | Public base url of the application (e.g. `htttp://localhost`)           |  yes   |
+| `APPLICATION_NAME`                          |   `Movary`    | Application name, displayed e.g. as brand name in the navbar            |  yes   |
+| `TMDB_ENABLE_IMAGE_CACHING`                 |      `0`      | More info [here](features/tmdb-data.md#image-cache)                     |        |
+| `ENABLE_REGISTRATION`                       |      `0`      | Enables public user registration                                        |        |
+| `MIN_RUNTIME_IN_SECONDS_FOR_JOB_PROCESSING` |     `15`      | Minimum time between background jobs processing                         |        |
+| `TIMEZONE`                                  |     `UTC`     | Supported timezones [here](https://www.php.net/manual/en/timezones.php) |  yes   |
+| `DEFAULT_LOGIN_EMAIL`                       |       -       | Email address to always autofill on login page                          |        |
+| `DEFAULT_LOGIN_PASSWORD`                    |       -       | Password to always autofill on login page                               |        |
+| `TOTP_ISSUER`                               |   `Movary`    | The issuer used when setting up two factor authentication               |        |
 
 ### Database
 
 Required to run the application
 
-| NAME                      |      DEFAULT VALUE      | INFO                             |
-|:--------------------------|:-----------------------:|:---------------------------------|
-| `DATABASE_MODE`           |            -            | **Required** `sqlite` or `mysql` |
-| `DATABASE_SQLITE`         | `storage/movary.sqlite` |                                  |
-| `DATABASE_MYSQL_HOST`     |            -            | Required when mode is `mysql`    |
-| `DATABASE_MYSQL_PORT`     |         `3306`          |                                  |
-| `DATABASE_MYSQL_NAME`     |            -            | Required when mode is `mysql`    |
-| `DATABASE_MYSQL_USER`     |            -            | Required when mode is `mysql`    |
-| `DATABASE_MYSQL_PASSWORD` |            -            | Required when mode is `mysql`    |
-| `DATABASE_MYSQL_CHARSET`  |        `utf8mb4`        |                                  |
+| NAME                              |      DEFAULT VALUE      | INFO                                                   |
+|:----------------------------------|:-----------------------:|:-------------------------------------------------------|
+| `DATABASE_MODE`                   |        `sqlite`         | `sqlite` or `mysql`                                    |
+| `DATABASE_SQLITE`                 | `storage/movary.sqlite` |                                                        |
+| `DATABASE_MYSQL_HOST`             |            -            | Required when mode is `mysql`                          |
+| `DATABASE_MYSQL_PORT`             |         `3306`          |                                                        |
+| `DATABASE_MYSQL_NAME`             |            -            | Required when mode is `mysql`                          |
+| `DATABASE_MYSQL_USER`             |            -            | Required when mode is `mysql`                          |
+| `DATABASE_MYSQL_PASSWORD`         |            -            | Required when mode is `mysql`                          |
+| `DATABASE_MYSQL_CHARSET`          |        `utf8mb4`        |                                                        |
+| `DATABASE_DISABLE_AUTO_MIGRATION` |           `0`           | On default docker runs migrations on container startup |
 
 ### Third party integrations
 

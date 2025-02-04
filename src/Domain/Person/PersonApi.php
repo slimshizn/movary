@@ -5,6 +5,7 @@ namespace Movary\Domain\Person;
 use Movary\ValueObject\Date;
 use Movary\ValueObject\DateTime;
 use Movary\ValueObject\Gender;
+use Traversable;
 
 class PersonApi
 {
@@ -41,7 +42,7 @@ class PersonApi
         );
     }
 
-    public function createOrUpdatePersonByTmdbId(
+    public function createOrUpdatePersonWithTmdbCreditsData(
         int $tmdbId,
         string $name,
         Gender $gender,
@@ -61,13 +62,12 @@ class PersonApi
         }
 
         if ($person->getName() !== $name ||
-            $person->getGender() !== $gender ||
+            $person->getGender()->isEqual($gender) === false ||
             $person->getKnownForDepartment() !== $knownForDepartment ||
             $person->getTmdbPosterPath() !== $posterPath
         ) {
-            $this->update(
+            $this->repository->updateWithTmdbCreditsData(
                 $person->getId(),
-                $tmdbId,
                 $name,
                 $gender,
                 $knownForDepartment,
@@ -88,7 +88,7 @@ class PersonApi
         $this->repository->deleteById($id);
     }
 
-    public function fetchAllOrderedByLastUpdatedAtTmdbAsc(?int $limit = null, ?array $ids = null) : \Traversable
+    public function fetchAllOrderedByLastUpdatedAtTmdbAsc(?int $limit = null, ?array $ids = null) : Traversable
     {
         return $this->repository->fetchAllOrderedByLastUpdatedAtTmdbAsc($limit, $ids);
     }
@@ -103,11 +103,6 @@ class PersonApi
         return $this->repository->findByTmdbId($tmdbId);
     }
 
-    public function updateHideInTopLists(int $userId, int $personId, bool $isHidden) : void
-    {
-        $this->repository->updateHideInTopLists($userId, $personId, $isHidden);
-    }
-
     public function update(
         int $id,
         int $tmdbId,
@@ -115,12 +110,12 @@ class PersonApi
         Gender $gender,
         ?string $knownForDepartment,
         ?string $tmdbPosterPath,
-        ?string $biography = null,
-        ?Date $birthDate = null,
-        ?Date $deathDate = null,
-        ?string $placeOfBirth = null,
-        ?DateTime $updatedAtTmdb = null,
-        ?string $imdbId = null,
+        ?string $biography,
+        ?Date $birthDate,
+        ?Date $deathDate,
+        ?string $placeOfBirth,
+        ?DateTime $updatedAtTmdb,
+        ?string $imdbId,
     ) : PersonEntity {
         return $this->repository->update(
             $id,
@@ -136,5 +131,10 @@ class PersonApi
             $updatedAtTmdb,
             $imdbId,
         );
+    }
+
+    public function updateHideInTopLists(int $userId, int $personId, bool $isHidden) : void
+    {
+        $this->repository->updateHideInTopLists($userId, $personId, $isHidden);
     }
 }

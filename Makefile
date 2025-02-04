@@ -8,24 +8,30 @@ up:
 	docker compose up -d
 
 up_mysql:
-	mkdir -p tmp/db
-	docker compose up -d mysql
+	docker compose -f docker-compose.yml -f docker-compose.mysql.yml up -d
 
-up_app: 
-	docker compose up -d app
+up_docs:
+	docker compose -f docker-compose.docs.yml up -d
+
+up_development:
+	docker compose -f docker-compose.yml -f docker-compose.development.yml up -d
+
+up_development_mysql:
+	docker compose -f docker-compose.yml -f docker-compose.development.yml -f docker-compose.mysql.yml up -d
 
 down:
-	docker compose down
-
-reup: down up
+	docker compose \
+	 -f docker-compose.yml \
+	 -f docker-compose.mysql.yml \
+	 -f docker-compose.docs.yml \
+	 down
 
 logs: 
 	docker compose logs -f
 
-build:
-	docker compose build --no-cache
-	make up
-	make db_mysql_create_database
+build_development:
+	docker compose -f docker-compose.yml -f docker-compose.development.yml build --no-cache
+	make up_development
 	make composer_install
 	make app_database_migrate
 	make exec_app_cmd CMD="php bin/console.php storage:link"
@@ -64,12 +70,12 @@ db_mysql_create_database:
 	make app_database_migrate
 
 db_mysql_import:
-	docker cp storage/dump.sql movary_mysql_1:/tmp/dump.sql
-	docker compose exec mysql bash -c 'mysql -uroot -p${DATABASE_MYSQL_ROOT_PASSWORD} < /tmp/dump.sql'
+	docker cp storage/dump.sql movary-mysql-1:/tmp/dump.sql
+	docker compose exec mysql bash -c 'mysql -uroot -p${DATABASE_MYSQL_ROOT_PASSWORD} movary < /tmp/dump.sql'
 
 db_mysql_export:
 	docker compose exec mysql bash -c 'mysqldump --databases --add-drop-database -uroot -p$(DATABASE_MYSQL_ROOT_PASSWORD) $(DATABASE_MYSQL_NAME) > /tmp/dump.sql'
-	docker cp movary_mysql_1:/tmp/dump.sql storage/dump.sql
+	docker cp movary-mysql-1:/tmp/dump.sql storage/dump.sql
 	chown $(USER_ID):$(USER_ID) storage/dump.sql
 
 db_migration_create:
@@ -80,7 +86,7 @@ db_migration_create:
 app_sync_all: app_sync_trakt app_sync_tmdb
 
 app_database_migrate:
-	make exec_app_cmd CMD="php bin/console.php database:migration:migrate "
+	make exec_app_cmd CMD="php bin/console.php database:migration:migrate"
 
 app_database_rollback:
 	make exec_app_cmd CMD="php bin/console.php database:migration:rollback"

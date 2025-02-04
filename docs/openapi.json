@@ -26,7 +26,7 @@
           {
             "name": "search",
             "in": "query",
-            "description": "Search term",
+            "description": "The search term",
             "required": false,
             "schema": {
               "type": "string"
@@ -50,6 +50,20 @@
             "schema": {
               "type": "integer",
               "default": 24
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "description": "Sort order",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "asc",
+              "enum": [
+                "asc",
+                "desc"
+              ]
             }
           }
         ],
@@ -97,7 +111,7 @@
         },
         "security": [
           {
-            "authToken": []
+            "token": []
           }
         ]
       },
@@ -137,6 +151,9 @@
                     },
                     "comment": {
                       "$ref": "#/components/schemas/commentOptional"
+                    },
+                    "position": {
+                      "$ref": "#/components/schemas/positionOptional"
                     }
                   }
                 }
@@ -157,7 +174,7 @@
         },
         "security": [
           {
-            "authToken": []
+            "token": []
           }
         ]
       },
@@ -197,6 +214,9 @@
                     },
                     "comment": {
                       "$ref": "#/components/schemas/comment"
+                    },
+                    "position": {
+                      "$ref": "#/components/schemas/position"
                     }
                   }
                 }
@@ -217,7 +237,7 @@
         },
         "security": [
           {
-            "authToken": []
+            "token": []
           }
         ]
       },
@@ -271,7 +291,7 @@
         },
         "security": [
           {
-            "authToken": []
+            "token": []
           }
         ]
       }
@@ -296,7 +316,7 @@
           {
             "name": "search",
             "in": "query",
-            "description": "Search term",
+            "description": "The search term",
             "required": false,
             "schema": {
               "type": "string"
@@ -407,7 +427,7 @@
         },
         "security": [
           {
-            "authToken": []
+            "token": []
           }
         ]
       },
@@ -457,7 +477,7 @@
         },
         "security": [
           {
-            "authToken": []
+            "token": []
           }
         ]
       },
@@ -507,7 +527,7 @@
         },
         "security": [
           {
-            "authToken": []
+            "token": []
           }
         ]
       }
@@ -532,7 +552,7 @@
           {
             "name": "search",
             "in": "query",
-            "description": "Search term",
+            "description": "The search term",
             "required": false,
             "schema": {
               "type": "string"
@@ -657,7 +677,7 @@
         },
         "security": [
           {
-            "authToken": []
+            "token": []
           }
         ]
       },
@@ -725,7 +745,7 @@
         },
         "security": [
           {
-            "authToken": []
+            "token": []
           }
         ]
       },
@@ -793,7 +813,7 @@
         },
         "security": [
           {
-            "authToken": []
+            "token": []
           }
         ]
       },
@@ -851,7 +871,7 @@
         },
         "security": [
           {
-            "authToken": []
+            "token": []
           }
         ]
       }
@@ -865,9 +885,9 @@
         "description": "Search remotely on tmdb for the movie with the specified search filters. Movies already existing locally will have a Movary id set.",
         "parameters": [
           {
-            "name": "query",
+            "name": "search",
             "in": "query",
-            "description": "The search query",
+            "description": "The search term",
             "required": true,
             "schema": {
               "type": "string"
@@ -884,7 +904,7 @@
             }
           },
           {
-            "name": "year",
+            "name": "releaseYear",
             "in": "query",
             "description": "Filter by release year",
             "required": false,
@@ -960,7 +980,7 @@
         },
         "security": [
           {
-            "authToken": []
+            "token": []
           }
         ]
       }
@@ -1042,6 +1062,192 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          }
+        }
+      }
+    },
+    "/authentication/token": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Get authentication data",
+        "description": "Get information about the authenticated user.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Movary-Token",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "The name of the user"
+                        },
+                        "userId": {
+                          "type": "integer",
+                          "description": "The id of the user"
+                        },
+                        "isAdmin": {
+                          "type": "boolean",
+                          "description": "True if user is an admin, false if not."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "security": [
+          {
+            "token": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Create authentication token",
+        "description": "Create an authentication token via email, password and optionally TOTP code. Add the token as X-Movary-Token header to further requests. Token lifetime 1d default, 30d with rememberMe.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Movary-Client",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "example": "Client Name"
+          }
+        ],
+        "requestBody": {
+          "description": "The credentials and optionally a two-factor authentication code",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "example": "user@email.com",
+                    "description": "An email address"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "mysecurepassword123",
+                    "description": "A password"
+                  },
+                  "totpCode": {
+                    "type": "integer",
+                    "pattern": "/^[0-9]{6}$/gm",
+                    "example": "123456",
+                    "description": "A 6-digit two-factor TOTP code",
+                    "nullable": true
+                  },
+                  "rememberMe": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "Extend auth token lifetime",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returned if authentication was successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "authToken": {
+                      "type": "string",
+                      "description": "The authentication token to be used in future requests."
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "The username of the user"
+                        },
+                        "userId": {
+                          "type": "integer",
+                          "description": "The ID of the authenticated user"
+                        },
+                        "isAdmin": {
+                          "type": "boolean",
+                          "description": "True if the user is an admin, False if the user isn't."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        }
+      },
+      "delete" : {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Delete authentication token",
+        "description": "Delete the authentication token provided in the X-Movary-Token header value.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Movary-Token",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {},
+        "responses": {
+          "204": {
+            "description": "Returned if authentication token does no longer exist"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
           }
         }
       }
@@ -1185,6 +1391,18 @@
         "default": null,
         "required": false
       },
+      "position": {
+        "type": "number",
+        "example": 1,
+        "nullable": false
+      },
+      "positionOptional": {
+        "type": "number",
+        "example": 1,
+        "nullable": true,
+        "default": 1,
+        "required": false
+      },
       "date": {
         "type": "string",
         "example": "2023-07-02"
@@ -1199,6 +1417,50 @@
       "204": {
         "description": "Successful operation, response has no content"
       },
+      "400": {
+        "description": "The request payload or header are not correct",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "description": "The error type",
+                  "example": "ErrorType"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "The error message",
+                  "example": "This is the error message"
+                }
+              }
+            }
+          }
+        }
+      },
+      "401": {
+        "description": "The provided credentials or TOTP code are not valid",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "description": "The error type",
+                  "example": "ErrorType"
+                },
+                "message": {
+                  "type": "string",
+                  "description": "The error message",
+                  "example": "This is the error message"
+                }
+              }
+            }
+          }
+        }
+      },
       "403": {
         "description": "Not authorized to access resource"
       },
@@ -1207,9 +1469,9 @@
       }
     },
     "securitySchemes": {
-      "authToken": {
+      "token": {
         "type": "apiKey",
-        "name": "X-Auth-Token",
+        "name": "X-Movary-Token",
         "in": "header"
       }
     }

@@ -26,7 +26,7 @@ class UserRepository
         );
     }
 
-    public function createAuthToken(int $userId, string $token, DateTime $expirationDate) : void
+    public function createAuthToken(int $userId, string $token, string $deviceName, string $userAgent, DateTime $expirationDate) : void
     {
         $this->dbConnection->insert(
             'user_auth_token',
@@ -34,6 +34,8 @@ class UserRepository
                 'user_id' => $userId,
                 'token' => $token,
                 'expiration_date' => (string)$expirationDate,
+                'device_name' => $deviceName,
+                'user_agent' => $userAgent,
                 'created_at' => (string)DateTime::create(),
             ],
         );
@@ -315,23 +317,6 @@ class UserRepository
         return $plexWebhookId;
     }
 
-    public function findUserByApiToken(string $apiToken) : ?UserEntity
-    {
-        $data = $this->dbConnection->fetchAssociative(
-            'SELECT user.*
-            FROM user
-            JOIN user_api_token ON user.id = user_api_token.user_id
-            WHERE user_api_token.token = ?',
-            [$apiToken],
-        );
-
-        if (empty($data) === true) {
-            return null;
-        }
-
-        return UserEntity::createFromArray($data);
-    }
-
     public function findUserByEmail(string $email) : ?UserEntity
     {
         $data = $this->dbConnection->fetchAssociative('SELECT * FROM `user` WHERE `email` = ?', [$email]);
@@ -357,6 +342,24 @@ class UserRepository
     public function findUserByName(string $name) : ?UserEntity
     {
         $data = $this->dbConnection->fetchAssociative('SELECT * FROM `user` WHERE `name` = ?', [$name]);
+
+        if (empty($data) === true) {
+            return null;
+        }
+
+        return UserEntity::createFromArray($data);
+    }
+
+    public function findUserByToken(string $apiToken) : ?UserEntity
+    {
+        $data = $this->dbConnection->fetchAssociative(
+            'SELECT user.*
+            FROM user
+            LEFT JOIN user_api_token ON user.id = user_api_token.user_id
+            LEFT JOIN user_auth_token ON user.id = user_auth_token.user_id
+            WHERE user_api_token.token = ? OR user_auth_token.token = ?',
+            [$apiToken, $apiToken],
+        );
 
         if (empty($data) === true) {
             return null;
@@ -443,6 +446,16 @@ class UserRepository
         }
 
         return (bool)$userPersonSettings[0]['is_hidden_in_top_lists'];
+    }
+
+    public function isLocationsEnabled(int $userId) : bool
+    {
+        $userPersonSettings = $this->dbConnection->fetchAllAssociative(
+            'SELECT locations_enabled FROM user WHERE id = ?',
+            [$userId],
+        );
+
+        return (bool)$userPersonSettings[0]['locations_enabled'];
     }
 
     public function setEmbyWebhookId(int $userId, ?string $embyWebhookId) : void
@@ -536,6 +549,19 @@ class UserRepository
         );
     }
 
+    public function updateDisplayCharacterNames(int $userId, bool $displayCharacterNames) : void
+    {
+        $this->dbConnection->update(
+            'user',
+            [
+                'display_character_names' => (int)$displayCharacterNames,
+            ],
+            [
+                'id' => $userId,
+            ],
+        );
+    }
+
     public function updateEmail(int $userId, string $email) : void
     {
         $this->dbConnection->update(
@@ -555,19 +581,6 @@ class UserRepository
             'user',
             [
                 'emby_scrobble_views' => (int)$scrobbleWatches,
-            ],
-            [
-                'id' => $userId,
-            ],
-        );
-    }
-
-    public function updateDisplayCharacterNames(int $userId, bool $displayCharacterNames) : void
-    {
-        $this->dbConnection->update(
-            'user',
-            [
-                'display_character_names' => (int)$displayCharacterNames,
             ],
             [
                 'id' => $userId,
@@ -647,6 +660,19 @@ class UserRepository
             'user',
             [
                 'jellyfin_sync_enabled' => (int)$enabledSync,
+            ],
+            [
+                'id' => $userId,
+            ],
+        );
+    }
+
+    public function updateLocationsEnabled(int $userId, bool $locationsEnabled) : void
+    {
+        $this->dbConnection->update(
+            'user',
+            [
+                'locations_enabled' => (int)$locationsEnabled,
             ],
             [
                 'id' => $userId,
